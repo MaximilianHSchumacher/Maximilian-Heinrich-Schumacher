@@ -3,6 +3,7 @@
 # 
 library(haven)
 library(ggplot2)
+library(stargazer)
 data <- read_dta("Assignment3/Data/chap5-cps.dta")
 
 data$wage <- exp(data$lnwage)
@@ -37,3 +38,6 @@ plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
   theme(legend.position = "none",plot.margin = margin(10, 10, 10, 10))
 plot_lnwage_wage78
 ggsave(filename = "Assignment3/Figures/plot_lnwage_wage78.png",plot = plot_lnwage_wage78,width = 7,height = 4.5,units = "in",dpi = 300)
+
+stargazer(data.frame(cps78[,c("lnwage","wage")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78.tex")
+
