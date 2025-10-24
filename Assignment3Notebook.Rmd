@@ -1,0 +1,74 @@
+---
+title: "Assignment 3"
+output: html_notebook
+---
+
+#Assignment 3 \# Exercise 1 \#
+
+```{r}
+library(haven)
+library(ggplot2)
+library(stargazer)
+data <- read_dta("Assignment3/Data/chap5-cps.dta")
+```
+
+#Daten aufteilung nach Jahren
+
+```{r}
+data$wage <- exp(data$lnwage)
+cps78 <- subset(data,year==1978)
+cps85 <- subset(data,year==1985)
+```
+
+#Berechnung unterschiedlicher deskriptiver statistiken
+
+```{r}
+mean <- c(mean(cps78$lnwage, na.rm = TRUE),mean(cps85$lnwage, na.rm = TRUE))
+sd <- c(sd(cps78$lnwage, na.rm = TRUE),sd(cps85$lnwage, na.rm = TRUE))
+exp1 <- c(mean(exp(cps78$lnwage), na.rm = TRUE),mean(exp(cps85$lnwage), na.rm = TRUE))
+exp2 <- c(exp(mean[1]),exp(mean[2]))
+meansd <- data.frame (Mean_Lnwage =mean, SD_Lnwage = sd,Arithmetic_mean=exp1,Geometric_mean=exp2)
+rownames(meansd) <- c("CPS78","CPS85")
+```
+
+#Abbildung Scatterplot Wage/Lnwage
+
+```{r}
+plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
+  geom_point(color = "black", alpha = 0.3, size = 2) +
+  geom_hline(yintercept = mean[1], linetype = "dashed", color ="red") +
+  annotate(geom = "text",x = 20,y = mean[1]+0.1,label = paste("Mean Ln(Wage)=",round(mean[1],2)),color = "red")+
+  geom_vline(xintercept = exp1[1], linetype = "dashed", color = "blue") +
+  annotate(geom = "text",x = exp1[1]+0.5,y = 2.8,label = paste("Geometric mean=",round(exp1[1],2)),color = "blue",angle = 90)+
+  coord_cartesian(ylim = c(0, 3.5),xlim=c(0,30)) +
+  theme_bw(base_size = 13) +
+  labs(x = "Wage",y = "Ln(Wage)") +
+  theme(legend.position = "none",plot.margin = margin(10, 10, 10, 10))
+plot_lnwage_wage78
+```
+
+#Tabelel fuer die summary statistics
+
+```{r}
+ggsave(filename = "Assignment3/Figures/plot_lnwage_wage78.png",plot = plot_lnwage_wage78,width = 7,height = 4.5,units = "in",dpi = 300)
+
+stargazer(data.frame(cps78[,c("lnwage","wage")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78.tex")
+```
+
+Jetzt Berechnung von deskriptiver statistiken für Jahre schule (ED) und Jahre Erfahrung (EX)
+
+```{r}
+meanedex <- c(mean(cps78$ed, na.rm = TRUE),mean(cps85$ed, na.rm = TRUE),mean(cps78$ex, na.rm = TRUE),mean(cps85$ex, na.rm = TRUE))
+sdedex <- c(sd(cps78$ed, na.rm = TRUE),sd(cps85$ed, na.rm = TRUE),sd(cps78$ex, na.rm = TRUE),sd(cps85$ex, na.rm = TRUE))
+exp1edex <- c(mean(exp(cps78$ed), na.rm = TRUE),mean(exp(cps85$ed), na.rm = TRUE),mean(exp(cps78$ex), na.rm = TRUE),mean(exp(cps85$ex), na.rm = TRUE))
+exp2edex <- c(exp(meanedex[1]),exp(meanedex[2]),exp(meanedex[3]),exp(meanedex[4]))
+
+meanexed <- data.frame (Mean_EDEX=meanedex, SD_EDEX =sdedex,Arithmetic_mean_EDEX=exp1edex,Geometric_mean_EDEX=exp2edex)
+rownames(meanexed) <- c("CPS78ED","CPS85ED","CPS78EX","CPS85EX")
+```
+
+Stargazer speichert die Ergebnisse in Latex format fertig zum schreiben.
+
+```{r}
+stargazer(data.frame(cps78[,c("ed","ex")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78edex.tex")  
+```
