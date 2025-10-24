@@ -1,31 +1,25 @@
-#Assignment 3
-# Exercise 1
-# 
+  #Assignment 3
+  # Exercise 1
+  # 
 library(haven)
 library(ggplot2)
 library(stargazer)
 data <- read_dta("Assignment3/Data/chap5-cps.dta")
 
 data$wage <- exp(data$lnwage)
+#Daten aufteilung nach Jahren
 cps78 <- subset(data,year==1978)
 cps85 <- subset(data,year==1985)
 
+#Berechnung unterschiedlicher deskriptiver statistiken
 mean <- c(mean(cps78$lnwage, na.rm = TRUE),mean(cps85$lnwage, na.rm = TRUE))
 sd <- c(sd(cps78$lnwage, na.rm = TRUE),sd(cps85$lnwage, na.rm = TRUE))
 exp1 <- c(mean(exp(cps78$lnwage), na.rm = TRUE),mean(exp(cps85$lnwage), na.rm = TRUE))
 exp2 <- c(exp(mean[1]),exp(mean[2]))
 meansd <- data.frame (Mean_Lnwage =mean, SD_Lnwage = sd,Arithmetic_mean=exp1,Geometric_mean=exp2)
-
 rownames(meansd) <- c("CPS78","CPS85")
 
-ggplot(cps78, aes(y = lnwage, x = wage)) +
-  geom_point(alpha = 0.6, color = "steelblue") +
-  labs(
-    y = "Ln(Wage)",
-    x = "Wage"
-  ) +
-  theme_minimal()
-
+#Abbildung Scatterplot Wage/Lnwage
 plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
   geom_point(color = "black", alpha = 0.3, size = 2) +
   geom_hline(yintercept = mean[1], linetype = "dashed", color ="red") +
@@ -37,7 +31,11 @@ plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
   labs(x = "Wage",y = "Ln(Wage)") +
   theme(legend.position = "none",plot.margin = margin(10, 10, 10, 10))
 plot_lnwage_wage78
+#Tabelel fuer die summary statistics 
 ggsave(filename = "Assignment3/Figures/plot_lnwage_wage78.png",plot = plot_lnwage_wage78,width = 7,height = 4.5,units = "in",dpi = 300)
 
 stargazer(data.frame(cps78[,c("lnwage","wage")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78.tex")
 
+
+# 1jezt standard deviation und arithmetisches mittel von years schooling (ed) und experience (ex)
+  

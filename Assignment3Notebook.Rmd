@@ -9,12 +9,15 @@ output: html_notebook
 library(haven)
 library(ggplot2)
 library(stargazer)
-data <- read_dta("Assignment3/Data/chap5-cps.dta")
+library(xtable)
+
+
 ```
 
 #Daten aufteilung nach Jahren
 
 ```{r}
+data <- read_dta("Assignment3/Data/chap5-cps.dta")
 data$wage <- exp(data$lnwage)
 cps78 <- subset(data,year==1978)
 cps85 <- subset(data,year==1985)
@@ -71,4 +74,94 @@ Stargazer speichert die Ergebnisse in Latex format fertig zum schreiben.
 
 ```{r}
 stargazer(data.frame(cps78[,c("ed","ex")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78edex.tex")  
+```
+
+1b) Insgesamt gibt es 550 beobachtungen innerhalb des 78iger Datasets
+
+Dummy Variable NONWH (Nicht Weiss und Nicht Hispanic)
+
+Dummy Variable HIPS (Nicht Weiss und Hispanic)
+
+Dummy Variable FE (Frauen)
+
+```{r}
+Dummy <- data.frame(cps78$nonwh,cps78$hisp,cps78$fe)
+stargazer(Dummy,type = "latex",title = "Dummy variables cps78",digits = 2,out = "Assignment3/Tables/summary_dummy.tex")  
+```
+
+Jetzt Aufgabe 1
+
+```{r}
+
+```
+
+Den Datensatz CPS78 nach Geschlecht unterteilen und dann die standard deviation (SD) und mittelwert (MEAN) von (ED) und Jetzt den Datensatz nach "Rasse Dummy Variablen aufteilen, also Black, Hisp und Weisi aufteilen und
+
+-\> MEAN, SD, Geometric Mean von ED
+
+Zuerst habe ich die Datensätze aufgeteilt sodass ich einfach die Berechnung pro subset machen kann
+
+```{r}
+Male <- subset(cps78,fe==0)
+Female <- subset(cps78,fe==1)
+White <- subset(cps78,nonwh==0)
+Hispanic <- subset(cps78,hisp==1)
+Black <- subset(cps78,nonwh==1)
+MaleWhite <- subset(White,fe==0)
+MaleHispanic <- subset(Hispanic,fe==0)
+MaleBlack <- subset(Black,fe==0)
+FemaleWhite <- subset(White,fe==1)
+FemaleHispanic <- subset(Hispanic,fe==1)
+FemaleBlack <- subset(Black,fe==1)
+
+
+mean2 <- c(mean(Male$ed),mean(Female$ed),mean(White$ed),mean(Hispanic$ed),mean(Black$ed),mean(MaleWhite$ed),mean(MaleHispanic$ed),mean(MaleBlack$ed),mean(FemaleWhite$ed),mean(FemaleHispanic$ed),mean(FemaleBlack$ed))
+
+sd2 <- c(sd(Male$ed),sd(Female$ed),sd(White$ed),sd(Hispanic$ed),sd(Black$ed),sd(MaleWhite$ed),sd(MaleHispanic$ed),sd(MaleBlack$ed),sd(FemaleWhite$ed),sd(FemaleHispanic$ed),sd(FemaleBlack$ed))
+
+meanwage2 <- c(mean(Male$lnwage),mean(Female$lnwage),mean(White$lnwage),mean(Hispanic$lnwage),mean(Black$lnwage),mean(MaleWhite$lnwage),mean(MaleHispanic$lnwage),mean(MaleBlack$lnwage),mean(FemaleWhite$lnwage),mean(FemaleHispanic$lnwage),mean(FemaleBlack$lnwage))
+
+geom2 <- exp(meanwage2)
+obs2 <- c(nrow(Male),nrow(Female),nrow(White),nrow(Hispanic),nrow(Black),nrow(MaleWhite),nrow(MaleHispanic),nrow(MaleBlack),nrow(FemaleWhite),nrow(FemaleHispanic),nrow(FemaleBlack))
+percent2 <- obs2/nrow(cps78)
+annual2 <- geom2*2000
+genderrace <- data.frame(mean2, sd2,geom2,annual2,obs2,percent2)
+groups <- c("Male","Female","White","Hispanic","Black","White Male","Hispanic Male","Black Male","White Female","Hispanic Female","Black Female")
+
+genderrace <- data.frame(groups,obs2,percent2,mean2, sd2,geom2,annual2)
+colnames(genderrace) <- c(" ","Obs","% Sample","Mean Ed", "SD ED","Geometric mean Wage","Annual Average Wage")
+
+genderrace
+
+```
+
+```{r}
+empty_row <- data.frame(matrix(NA, ncol = ncol(genderrace), nrow = 1))
+colnames(empty_row) <-colnames(genderrace)
+
+genderrace_with_space <- rbind(empty_row,
+  genderrace[1:2, ],
+  empty_row,
+  genderrace[3:5, ],
+  empty_row,
+  genderrace[6:11, ]
+)
+genderrace_with_space[1,1]<- "Gender"
+genderrace_with_space[4,1]<- "Race"
+genderrace_with_space[8,1]<- "Gender and Race"
+rownames(genderrace_with_space)=NULL
+
+stargazer(genderrace_with_space,rownames = FALSE,
+          summary = FALSE,
+          type = "latex",
+          digits = 2,
+          out = "genderrace_table.tex")
+```
+
+```{r}
+
+```
+
+```{r}
+
 ```
