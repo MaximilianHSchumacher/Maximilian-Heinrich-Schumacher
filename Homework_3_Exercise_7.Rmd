@@ -1,0 +1,91 @@
+---
+title: "Excercise 7"
+output: Wage Discrimination
+---
+
+
+```{r}
+library(haven)
+library(ggplot2)
+library(stargazer)
+library(xtable)
+library(tidyr)
+library(dplyr)
+library(car)
+library(strucchange)
+```
+
+```{r}
+data <- read_dta("Assignment3/Data/chap5-cps.dta")
+data$wage <- exp(data$lnwage)
+cps78 <- subset(data,year==1978)
+cps85 <- subset(data,year==1985)
+
+Male <- subset(cps78,fe==0)
+Female <- subset(cps78,fe==1)
+```
+
+```{r}
+modelI <- lm(lnwage~fe+union+hisp+nonwh+ed+ex+exsq,data)
+linearHypothesis(modelI, "fe = 0")
+stargazer(modelI, type = "text", title = "Wage Regression (CPS78)", digits = 3)
+```
+```{r}
+summarymale <- c(mean(Male$lnwage),mean(Male$union),mean(Male$hisp),mean(Male$nonwh),mean(Male$ed),mean(Male$ex),mean(Male$exsq))
+summaryfemale <- c(mean(Female$lnwage),mean(Female$union),mean(Female$hisp),mean(Female$nonwh),mean(Female$ed),mean(Female$ex),mean(Female$exsq))
+
+summary <- data.frame(summarymale,summaryfemale)
+colnames(summary) <- c("Male","Female")
+row.names(summary) <- c("LN Wage","Union","Hispanic","Non-White","ED","EX","EXSQ")
+summary$MF <- summary$Male-summary$Female
+```
+
+```{r}
+modelII <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Male)
+modelIII <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female)
+
+stargazer(modelII, modelIII,
+          type = "latex",title = "Wage Regressions by Gender",
+          column.labels = c("Male", "Female"),dep.var.labels = "Log(Wage)",
+          covariate.labels =c("Union", "Nonwhite", "Hispanic","Education", "Experience²"),
+          digits = 3,out = "Assignment3/tables/gender_models.tex")
+
+```
+
+```{r}
+modelIV <- lm(lnwage ~union+hisp+nonwh+ed+ex+exsq,data)
+
+RSS_IV <- sum(resid(modelIV)^2)
+RSS_III <- sum(resid(modelIII)^2)
+RSS_II <- sum(resid(modelII)^2)
+
+k_IV <- length(coef(modelIV))
+n_III <- nobs(modelIII)
+n_II <- nobs(modelII)
+
+summary2 <- data.frame(c(RSS_IV,RSS_III,RSS_II),c(k_IV,n_III,n_II))
+
+F_chow <- ((RSS_IV-(RSS_II+RSS_III))/k_IV)/((RSS_II+RSS_III)/(n_II+n_III-2*k_IV))
+p_value <- pf(F_chow, k_IV, (n_II + n_III - 2*k_IV), lower.tail = FALSE)
+```
+
+
+```{r}
+gap <- summarymale[1] - summaryfemale[1]
+bm <- coef(modelII)
+bf <- coef(modelIII)
+
+Xm <- c(1, summarymale[2:7])  # Add intercept 1 at the beginning
+Xf <- c(1, summaryfemale[2:7])
+
+summary3 <- data.frame(bm,bf,Xm,Xf)
+explained <- sum((Xm - Xf) * bm)
+unexplained <- sum(Xf * (bm - bf))
+
+gap
+explained + unexplained
+summary3
+
+
+```
+
