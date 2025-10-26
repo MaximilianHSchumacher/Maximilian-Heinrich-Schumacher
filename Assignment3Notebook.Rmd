@@ -5,16 +5,38 @@ output: html_notebook
 
 #Assignment 3 \# Exercise 1 \#
 
+In this section, the required R packages are loaded.
+
+haven is used to import datasets from Stata, SPSS, or SAS.
+
+ggplot2 is used to create elegant and customizable data visualizations.
+
+stargazer and xtable generate nicely formatted regression or summary tables for LaTeX or HTML output.
+
+tidyr provides tools to reshape and tidy data (e.g., pivoting or splitting columns).
+
+dplyr offers efficient data manipulation functions for filtering, grouping, and summarizing datasets.
+
 ```{r}
 library(haven)
 library(ggplot2)
 library(stargazer)
 library(xtable)
-
-
+library(tidyr)
+library(dplyr)
 ```
 
-#Daten aufteilung nach Jahren
+In this step, the dataset from the Current Population Survey (CPS) is imported and prepared for analysis.
+
+The .dta file is read using haven, which allows R to handle Stata files.
+
+A new variable wage is created by exponentiating the logged wage variable (lnwage) to obtain the actual wage values.
+
+Two subsets of the data are then created:
+
+cps78, containing observations from the year 1978.
+
+cps85, containing observations from the year 1985.
 
 ```{r}
 data <- read_dta("Assignment3/Data/chap5-cps.dta")
@@ -23,18 +45,44 @@ cps78 <- subset(data,year==1978)
 cps85 <- subset(data,year==1985)
 ```
 
-#Berechnung unterschiedlicher deskriptiver statistiken
+In this section, summary statistics for the 1978 and 1985 CPS datasets are computed and organized for comparison.
+
+The mean and standard deviation of the log wage (lnwage) are calculated for each year, ignoring missing values.
+
+The mean and standard deviation of the actual wage are also computed.
+
+Two types of average wage levels are compared:
+
+Arithmetic mean of the exponentiated log wages (exp1), which gives an estimate of the average wage in natural units.
+
+Geometric mean (exp2), obtained by exponentiating the mean of log wages — this measure adjusts for the log-normal distribution of wages.
+
+Finally, all results are combined into a data frame (meansd) for clear presentation, with rows labeled “CPS78” and “CPS85.”
 
 ```{r}
 mean <- c(mean(cps78$lnwage, na.rm = TRUE),mean(cps85$lnwage, na.rm = TRUE))
+meanw <- c(mean(cps78$wage, na.rm = TRUE),mean(cps85$wage, na.rm = TRUE))
 sd <- c(sd(cps78$lnwage, na.rm = TRUE),sd(cps85$lnwage, na.rm = TRUE))
+sdw <- c(sd(cps78$wage, na.rm = TRUE),sd(cps85$wage, na.rm = TRUE))
 exp1 <- c(mean(exp(cps78$lnwage), na.rm = TRUE),mean(exp(cps85$lnwage), na.rm = TRUE))
 exp2 <- c(exp(mean[1]),exp(mean[2]))
 meansd <- data.frame (Mean_Lnwage =mean, SD_Lnwage = sd,Arithmetic_mean=exp1,Geometric_mean=exp2)
 rownames(meansd) <- c("CPS78","CPS85")
 ```
 
-#Abbildung Scatterplot Wage/Lnwage
+This plot visualizes the relationship between the actual wage and its logarithmic value (lnwage) for the 1978 CPS sample.
+
+A scatter plot displays individual observations, showing how wages relate to their logged values.
+
+The red dashed horizontal line marks the mean of ln(wage), helping to visualize the central tendency in log terms.
+
+The blue dashed vertical line represents the geometric mean wage, obtained by exponentiating the mean of ln(wage).
+
+Text annotations label both means for clarity.
+
+Axes are restricted to reasonable ranges (x = 0–30, y = 0–3.5) to focus on typical wage values.
+
+A clean, minimal look is achieved using the theme_bw() style, and margins are adjusted for proper spacing.
 
 ```{r}
 plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
@@ -47,10 +95,17 @@ plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
   theme_bw(base_size = 13) +
   labs(x = "Wage",y = "Ln(Wage)") +
   theme(legend.position = "none",plot.margin = margin(10, 10, 10, 10))
-plot_lnwage_wage78
 ```
 
-#Tabelel fuer die summary statistics
+In this step, the generated plot and summary statistics are exported for inclusion in the final report.
+
+The ggsave() function saves the wage–log(wage) plot for the 1978 CPS sample as a high-resolution PNG file (300 dpi) in the Assignment3/Figures folder.
+
+The stargazer() function produces a well-formatted LaTeX table summarizing the main variables (lnwage and wage) from the 1978 dataset.
+
+The output file is saved in Assignment3/Tables as summary_cps78.tex.
+
+The digits = 2 option rounds the displayed values to two decimal places, and the table title is set to “Summary Statistics cps78.”
 
 ```{r}
 ggsave(filename = "Assignment3/Figures/plot_lnwage_wage78.png",plot = plot_lnwage_wage78,width = 7,height = 4.5,units = "in",dpi = 300)
@@ -58,7 +113,23 @@ ggsave(filename = "Assignment3/Figures/plot_lnwage_wage78.png",plot = plot_lnwag
 stargazer(data.frame(cps78[,c("lnwage","wage")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78.tex")
 ```
 
-Jetzt Berechnung von deskriptiver statistiken für Jahre schule (ED) und Jahre Erfahrung (EX)
+In this section, descriptive statistics for education (ed) and experience (ex) are calculated for both the 1978 and 1985 CPS samples.
+
+The mean and standard deviation of each variable are computed separately for both years, excluding missing values.
+
+As with the wage analysis, both arithmetic and geometric means are derived:
+
+The arithmetic mean (exp1edex) is based on the mean of the exponentiated variable values.
+
+The geometric mean (exp2edex) is calculated by exponentiating the mean of the variable itself.
+
+These results are combined into a single data frame (meanexed) with rows representing each variable-year combination:
+
+“CPS78ED” and “CPS85ED” for education.
+
+“CPS78EX” and “CPS85EX” for experience.
+
+This allows easy comparison of how education and experience levels changed between 1978 and 1985.
 
 ```{r}
 meanedex <- c(mean(cps78$ed, na.rm = TRUE),mean(cps85$ed, na.rm = TRUE),mean(cps78$ex, na.rm = TRUE),mean(cps85$ex, na.rm = TRUE))
@@ -70,41 +141,61 @@ meanexed <- data.frame (Mean_EDEX=meanedex, SD_EDEX =sdedex,Arithmetic_mean_EDEX
 rownames(meanexed) <- c("CPS78ED","CPS85ED","CPS78EX","CPS85EX")
 ```
 
-Stargazer speichert die Ergebnisse in Latex format fertig zum schreiben.
+This command creates a LaTeX summary table of the variables education (ed) and experience (ex) for the 1978 CPS dataset.
+
+The stargazer() function formats the data into a professional, publication-ready table.
+
+The table is titled “Summary Statistics cps78” and saved as a .tex file in the Assignment3/Tables directory.
+
+The option digits = 2 rounds all numerical results to two decimal places.
+
+This output can be directly included in a LaTeX report for clear presentation of descriptive statistics.
 
 ```{r}
 stargazer(data.frame(cps78[,c("ed","ex")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78edex.tex")  
 ```
 
-1b) Insgesamt gibt es 550 beobachtungen innerhalb des 78iger Datasets
+In this step, a new data frame named Dummy is created to summarize the binary (dummy) variables from the 1978 CPS dataset.
 
-Dummy Variable NONWH (Nicht Weiss und Nicht Hispanic)
+The variables included are:
 
-Dummy Variable HIPS (Nicht Weiss und Hispanic)
+nonwh – indicator for nonwhite individuals.
 
-Dummy Variable FE (Frauen)
+hisp – indicator for Hispanic ethnicity.
+
+fe – indicator for female respondents.
+
+The stargazer() function then produces a LaTeX-formatted summary table displaying descriptive statistics (e.g., mean, standard deviation) for these dummy variables.
+
+The table is titled “Dummy variables cps78” and saved as summary_dummy.tex in the Assignment3/Tables folder, with results rounded to two decimal places.
 
 ```{r}
 Dummy <- data.frame(cps78$nonwh,cps78$hisp,cps78$fe)
 stargazer(Dummy,type = "latex",title = "Dummy variables cps78",digits = 2,out = "Assignment3/Tables/summary_dummy.tex")  
 ```
 
-Jetzt Aufgabe 1
+This section constructs demographic subgroups from the 1978 CPS data and computes education and wage summaries for each group.
 
-```{r}
+Subgroups are created by gender (Male/Female), race/ethnicity (White, Black, Hispanic), and their intersections (e.g., White Male, Black Female). White is defined as nonwh == 0 & hisp == 0; Black as nonwh == 1; Hispanic as hisp == 1.
 
-```
+For each group, the following statistics are calculated:
 
-Den Datensatz CPS78 nach Geschlecht unterteilen und dann die standard deviation (SD) und mittelwert (MEAN) von (ED) und Jetzt den Datensatz nach "Rasse Dummy Variablen aufteilen, also Black, Hisp und Weisi aufteilen und
+Mean Ed (mean2) and SD ED (sd2): average and dispersion of years of education.
 
--\> MEAN, SD, Geometric Mean von ED
+Mean ln(wage), then exponentiated to obtain the geometric mean wage (geom2) in natural units.
 
-Zuerst habe ich die Datensätze aufgeteilt sodass ich einfach die Berechnung pro subset machen kann
+Obs (obs2) and % Sample (percent2): group size and share of the full 1978 sample.
+
+Annual Average Wage (annual2): the geometric mean wage multiplied by 2,000 hours/year (a full-time work assumption) to express typical annual earnings.
+
+All results are assembled into a neatly labeled data frame genderrace for easy reporting and comparison across gender and race/ethnicity groups.
+
+Note: This code assumes relevant variables have no problematic missing values for the selected groups (no na.rm = TRUE in means/SDs). If there are NAs, consider adding na.rm = TRUE.
 
 ```{r}
 Male <- subset(cps78,fe==0)
 Female <- subset(cps78,fe==1)
-White <- subset(cps78,nonwh==0)
+White <- subset(cps78,nonwh==0 & hisp==0)
 Hispanic <- subset(cps78,hisp==1)
 Black <- subset(cps78,nonwh==1)
 MaleWhite <- subset(White,fe==0)
@@ -130,10 +221,29 @@ groups <- c("Male","Female","White","Hispanic","Black","White Male","Hispanic Ma
 
 genderrace <- data.frame(groups,obs2,percent2,mean2, sd2,geom2,annual2)
 colnames(genderrace) <- c(" ","Obs","% Sample","Mean Ed", "SD ED","Geometric mean Wage","Annual Average Wage")
-
-genderrace
-
 ```
+
+In this step, the table summarizing gender and race differences is formatted for clear presentation in LaTeX.
+
+An empty row (empty_row) is created and inserted between logical sections of the dataset to visually separate groups in the final table:
+
+Gender (Male, Female)
+
+Race (White, Hispanic, Black)
+
+Gender and Race (White Male, Hispanic Male, etc.)
+
+Descriptive headers (“Gender,” “Race,” “Gender and Race”) are added manually to the first column to label each section.
+
+The combined data frame (genderrace_with_space) thus includes both content rows and blank rows for spacing.
+
+Finally, stargazer() exports the table to LaTeX format (genderrace_table.tex) with the following options:
+
+summary = FALSE to prevent extra summary statistics from being printed.
+
+rownames = FALSE for a clean appearance.
+
+digits = 2 to round all numeric values to two decimal places.
 
 ```{r}
 empty_row <- data.frame(matrix(NA, ncol = ncol(genderrace), nrow = 1))
@@ -155,13 +265,374 @@ stargazer(genderrace_with_space,rownames = FALSE,
           summary = FALSE,
           type = "latex",
           digits = 2,
-          out = "genderrace_table.tex")
+          out = "Assignment3/Tables/genderrace_table.tex")
 ```
 
-```{r}
+This section constructs 1985 demographic subgroups, adjusts wages for inflation, and computes real wage and education summaries.
 
+Inflation adjustment: realwage is defined as lnwage − log(deflator), which is the log of real wages (1985 wages deflated into base-year dollars using a deflator of 1.649).
+
+Subgroups (1985): The data are split by gender (Male/Female), race/ethnicity (White = nonwh == 0 & hisp == 0, Black = nonwh == 1, Hispanic = hisp == 1), and their intersections (e.g., MaleWhite85, FemaleBlack85).
+
+Education stats: For each group, the mean and standard deviation of years of education are computed (mean285, sd285).
+
+Wage stats:
+
+meanwage285 holds the mean of ln(wage) (nominal, 1985 dollars).
+
+realwage285 stores the mean of ln(real wage) (inflation-adjusted).
+
+Exponentiating realwage285 yields geom285, the geometric mean of real wages in base-year currency units.
+
+annual285 multiplies geom285 by 2,000 hours/year to express typical annual real earnings.
+
+Group sizes and shares: obs285 counts observations per group; percent285 reports each group’s share of the 1985 sample.
+
+Output tables: Results are assembled into genderrace85, reusing the previously defined groups labels and applying descriptive column names for clear reporting.
+
+```{r}
+deflator <- 1.649
+cps85$realwage <- cps85$lnwage -log(deflator)
+Male85 <- subset(cps85,fe==0)
+Female85 <- subset(cps85,fe==1)
+White85 <- subset(cps85,nonwh==0 & hisp==0)
+Hispanic85 <- subset(cps85,hisp==1)
+Black85 <- subset(cps85,nonwh==1)
+MaleWhite85 <- subset(White85,fe==0)
+MaleHispanic85 <- subset(Hispanic85,fe==0)
+MaleBlack85 <- subset(Black85,fe==0)
+FemaleWhite85 <- subset(White85,fe==1)
+FemaleHispanic85 <- subset(Hispanic85,fe==1)
+FemaleBlack85 <- subset(Black85,fe==1)
+
+
+mean285 <- c(mean(Male85$ed),mean(Female85$ed),mean(White85$ed),mean(Hispanic85$ed),mean(Black85$ed),mean(MaleWhite85$ed),mean(MaleHispanic85$ed),mean(MaleBlack85$ed),mean(FemaleWhite85$ed),mean(FemaleHispanic85$ed),mean(FemaleBlack85$ed))
+
+sd285 <- c(sd(Male85$ed),sd(Female85$ed),sd(White85$ed),sd(Hispanic85$ed),sd(Black85$ed),sd(MaleWhite85$ed),sd(MaleHispanic85$ed),sd(MaleBlack85$ed),sd(FemaleWhite85$ed),sd(FemaleHispanic85$ed),sd(FemaleBlack85$ed))
+
+meanwage285 <- c(mean(Male85$lnwage),mean(Female85$lnwage),mean(White85$lnwage),mean(Hispanic85$lnwage),mean(Black85$lnwage),mean(MaleWhite85$lnwage),mean(MaleHispanic85$lnwage),mean(MaleBlack85$lnwage),mean(FemaleWhite85$lnwage),mean(FemaleHispanic85$lnwage),mean(FemaleBlack85$lnwage))
+
+realwage285 <- c(mean(Male85$realwage),mean(Female85$realwage),mean(White85$realwage),mean(Hispanic85$realwage),mean(Black85$realwage),mean(MaleWhite85$realwage),mean(MaleHispanic85$realwage),mean(MaleBlack85$realwage),mean(FemaleWhite85$realwage),mean(FemaleHispanic85$realwage),mean(FemaleBlack85$realwage))
+
+geom285 <- exp(realwage285)
+obs285 <- c(nrow(Male85),nrow(Female85),nrow(White85),nrow(Hispanic85),nrow(Black85),nrow(MaleWhite85),nrow(MaleHispanic85),nrow(MaleBlack85),nrow(FemaleWhite85),nrow(FemaleHispanic85),nrow(FemaleBlack85))
+percent285 <- obs285/nrow(cps85)
+annual285 <- geom285*2000
+genderrace <- data.frame(mean285, sd285,geom285,annual285,obs285,percent285)
+
+genderrace85 <- data.frame(groups,obs285,percent285,mean285, sd285,geom285,annual285)
+colnames(genderrace85) <- c(" ","Obs","% Sample","Mean Ed", "SD ED","Geometric mean Wage","Annual Average Wage")
 ```
 
-```{r}
+This block formats and exports the 1985 summary table for education and real wage statistics by gender and race.
 
+As with the 1978 table, empty rows are inserted to visually separate categories in the final output:
+
+Gender (Male, Female)
+
+Race (White, Hispanic, Black)
+
+Gender and Race (e.g., White Male, Black Female)
+
+Section headers are added manually in the first column to label each group type.
+
+Row names are removed for a clean layout, and the structured table (genderrace_with_space85) is exported using stargazer().
+
+The table is saved as genderrace_table85.tex in the Assignment3/Tables directory, formatted for LaTeX with all values rounded to two decimals.
+
+```{r}
+genderrace_with_space85 <- rbind(empty_row,
+  genderrace85[1:2, ],
+  empty_row,
+  genderrace85[3:5, ],
+  empty_row,
+  genderrace85[6:11, ]
+)
+genderrace_with_space85[1,1]<- "Gender"
+genderrace_with_space85[4,1]<- "Race"
+genderrace_with_space85[8,1]<- "Gender and Race"
+rownames(genderrace_with_space85)=NULL
+
+stargazer(genderrace_with_space85,rownames = FALSE,
+          summary = FALSE,
+          type = "latex",
+          digits = 2,
+          title = "Education and Real Wage Statistics by Gender and Race (1985)",
+          out = "Assignment3/Tables/genderrace_table85.tex")
+```
+
+In this section, the 1978 CPS data are categorized into wage intervals based on standard deviation ranges around the mean, both for the log wage (lnwage) and the actual wage (wage).
+
+Two vectors of cutoff points are defined:
+
+breaks for ln(wage) — centered on the mean and extended by ±1 and ±2 standard deviations.
+
+breaksw for wage — defined similarly, using the corresponding mean and standard deviation of actual wages.
+
+A set of dummy variables is then created to indicate whether each observation falls within a specific range:
+
+For ln(wage): one, two, three, four, five, and six.
+
+For wage: onew, twow, threew, fourw, fivew, and sixw.
+
+Each dummy variable equals 1 if the individual’s wage falls within the specified interval and 0 otherwise.
+
+This classification allows for later visualization or tabulation of wage distributions across standard deviation bands, helping to illustrate wage dispersion in both log and real terms.
+
+```{r}
+breaks <- c(0,(mean[1] - 2*sd[1]),(mean[1]-sd[1]),mean[1],(mean[1]+sd[1]),(mean[1]+2*sd[1]),100)
+breaksw <- c(-5,(meanw[1] - 2*sdw[1]),(meanw[1]-sdw[1]),meanw[1],(meanw[1]+sdw[1]),(meanw[1]+2*sdw[1]),100)
+
+cps78$one <- ifelse(cps78$lnwage < breaks[1],1, 0)
+cps78$two <- ifelse(cps78$lnwage >= breaks[1] & cps78$lnwage < breaks[2],1, 0)
+cps78$three <- ifelse(cps78$lnwage >= breaks[2] & cps78$lnwage < breaks[3],1, 0)
+cps78$four <- ifelse(cps78$lnwage >= breaks[3]& cps78$lnwage <= breaks[4],1, 0)
+cps78$five <- ifelse(cps78$lnwage > breaks[4] & cps78$lnwage <= breaks[5],1, 0)
+cps78$six <- ifelse(cps78$lnwage > breaks[5],1, 0)
+
+cps78$onew <- ifelse(cps78$wage < breaksw[1],1, 0)
+cps78$twow <- ifelse(cps78$wage >= breaksw[1] & cps78$wage < breaksw[2],1, 0)
+cps78$threew <- ifelse(cps78$wage >= breaksw[2] & cps78$wage < breaksw[3],1, 0)
+cps78$fourw <- ifelse(cps78$wage >= breaksw[3]& cps78$wage <= breaksw[4],1, 0)
+cps78$fivew <- ifelse(cps78$wage > breaksw[4] & cps78$wage <= breaksw[5],1, 0)
+cps78$sixw <- ifelse(cps78$wage > breaksw[5],1, 0)
+```
+
+This section summarizes the wage distribution across the previously defined standard deviation intervals.
+
+For each interval (I–VI), the total number of observations falling into that range is calculated:
+
+obs1–obs6 record counts for both log wages (lnwage) and actual wages (wage).
+
+These counts are combined into a data frame named observation, with:
+
+Rows labeled “LN Wage” and “Wage”,
+
+Columns labeled I–VI, corresponding to the six wage intervals.
+
+A second data frame, proportion, converts the absolute counts into relative frequencies, showing what proportion of all observations lies in each interval.
+
+Finally, distributionwage stores these proportions for easier display or visualization.
+
+This summary provides a clear, side-by-side comparison of how wage data are distributed in both logarithmic and natural scales — useful for assessing the effect of log transformation on the shape of the distribution.
+
+```{r}
+obs1 <- c(sum(cps78$one),sum(cps78$onew))
+obs2 <- c(sum(cps78$two),sum(cps78$twow))
+obs3 <- c(sum(cps78$three),sum(cps78$threew))
+obs4 <- c(sum(cps78$four),sum(cps78$fourw))
+obs5 <- c(sum(cps78$five),sum(cps78$fivew))
+obs6 <- c(sum(cps78$six),sum(cps78$sixw))
+
+observation <- data.frame(obs1,obs2,obs3,obs4,obs5,obs6)
+proportion <- observation/sum(observation)
+distributionwage <- data.frame(proportion)
+rownames(observation) <- c("LN Wage","Wage")
+colnames(observation) <- c("I","II","III","IV","V","VI")
+```
+
+In this step, the theoretical (expected) wage distribution is calculated under the assumption that wages follow a normal distribution.
+
+The pnorm() function computes cumulative probabilities from a normal distribution defined by the sample’s mean and standard deviation.
+
+diff(pnorm(...)) gives the probability mass between each pair of breakpoints — i.e., the expected proportion of observations within each standard deviation interval.
+
+The resulting vectors:
+
+Expected_prob → expected proportions for log wages (lnwage).
+
+Expected_probw → expected proportions for actual wages (wage).
+
+These probabilities are then multiplied by the total number of observations in the sample to estimate the expected counts per interval (Expected_Total and Expected_Totalw).
+
+Finally, all expected probabilities and totals are combined into one data frame, Expected, allowing for direct comparison between observed and expected distributions.
+
+This comparison helps evaluate how closely the empirical wage data follow the normal distribution assumption.
+
+```{r}
+Expected_prob <- diff(pnorm(breaks, mean=mean[1],sd=sd[1]))
+Expected_Total <- Expected_prob*sum(observation[1,])
+Expected_probw <- diff(pnorm(breaksw, mean=meanw[1],sd=sdw[1]))
+Expected_Totalw <- Expected_probw*sum(observation[1,])
+Expected <- rbind(Expected_prob,Expected_Total,Expected_probw,Expected_Totalw)
+```
+
+This step organizes the observed and expected wage distributions into a single, clearly structured table for comparison.
+
+An empty row (empty_row2) is created to visually separate sections in the final table.
+
+The distribution data frame is assembled in the following order:
+
+(Blank spacing row)
+
+Observed counts for log wages (LN Wage)
+
+Expected probabilities for LN Wage (from the normal distribution)
+
+Expected total counts for LN Wage
+
+(Blank spacing row)
+
+Observed counts for actual wages (Wage)
+
+Expected probabilities for Wage
+
+Expected total counts for Wage
+
+Column names (I–VI) correspond to the six standard-deviation intervals defined earlier.
+
+This layout provides a neat side-by-side structure for comparing empirical and theoretical distributions of wages, both in log and natural scales.
+
+```{r}
+empty_row2 <- data.frame(matrix(NA, ncol = ncol(observation), nrow = 1))
+colnames(empty_row2) <- colnames(observation)
+distribution <- rbind(empty_row2,
+  observation[1,],
+  Expected_prob,
+  Expected_Total,
+  empty_row2,
+  observation[2,],
+  Expected_probw,
+  Expected_Totalw
+) 
+colnames(distribution) <- c("I","II","III","IV","V","VI")
+```
+
+In this step, the wage distribution table is reshaped and prepared for easier plotting or further analysis.
+
+The distribution table is transposed (t(distribution)), switching rows and columns so that each wage interval (I–VI) becomes a row rather than a column.
+
+The variable kategorie stores the row names (the interval labels), which are then added back as a separate column in a new data frame data_long.
+
+The resulting object is converted to a data frame with check.names = FALSE to preserve special characters or spaces in column names.
+
+The vector num_cols identifies all columns containing numerical data (i.e., all except "kategorie"), which can then be used for numeric operations or plotting (e.g., with ggplot2).
+
+This transformation produces a long-format dataset suitable for visualizing or comparing observed and expected wage frequencies across intervals.
+
+```{r}
+datalong <- t(distribution)
+kategorie <- rownames(datalong)
+data_long <- data.frame(datalong,kategorie)
+data_long <- as.data.frame(data_long, check.names = FALSE)
+num_cols <- setdiff(names(data_long), "kategorie")
+```
+
+This step prepares and exports a LaTeX table summarizing the observed and expected wage distributions.
+
+A new data frame, stargazerdata, is created by selecting the relevant columns from data_long.
+
+It includes the category labels (wage intervals) and the corresponding number of observations and percentages for both log wages and actual wages.
+
+Column names are set to clearly label the two sections for comparison: “Categorie”, “N Obs.”, and “%”.
+
+The stargazer() function is then used to output the formatted table:
+
+summary = FALSE ensures only the provided data are printed.
+
+rownames = FALSE removes unnecessary row labels.
+
+digits = 2 rounds numerical results to two decimal places.
+
+The table is exported as wagedistribution.tex in the Assignment3/Tables folder for direct inclusion in a LaTeX report.
+
+```{r}
+stargazerdata <- data.frame(data_long[,9],data_long[,2],data_long[,3],data_long[,6],data_long[,7])
+colnames(stargazerdata) <- c("Categorie","N Obs.","%","N Obs.","%")
+stargazer(stargazerdata,rownames = FALSE,
+          summary = FALSE,
+          type = "latex",
+          digits = 2,
+          out = "Assignment3/Tables/wagedistribution.tex",title = "Observed and Expected Wage Distribution (1978)"
+)
+```
+
+This section visualizes the observed vs. expected distribution of log wages (LN Wage) in 1978.
+
+A bar chart displays the observed frequency of log wages across the six standard deviation intervals (blue bars).
+
+A red line with points represents the expected normal distribution of log wages, allowing for a visual comparison between empirical and theoretical values.
+
+The geom_col() function draws the bars, while geom_line() and geom_point() overlay the expected probabilities as a smooth curve with markers.
+
+Labels and formatting:
+
+The y-axis (“Observations”) indicates frequencies or expected counts.
+
+The minimalist theme (theme_minimal()) combined with white panel and plot backgrounds ensures a clean, publication-ready look.
+
+Finally, the plot is exported as a high-resolution PNG file (LNWage.png) in the Assignment3/Figures folder using ggsave(), sized 7×4.5 inches at 300 dpi.
+
+```{r}
+p <- ggplot(data_long, aes(x = kategorie,y="LN.Wage")) +
+  geom_col(aes(y = `LN.Wage`), fill = "blue", alpha = 0.6) +
+  geom_line(aes(y = X4, group = 1), color = "red", linewidth = 1.2) +
+  geom_point(aes(y = X4), color = "red", size = 2) +
+  labs(y = "Observations" ,x=NULL) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 10, 10, 10),
+    panel.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
+    plot.background  = element_rect(fill = "white", color = NA)
+  )
+ggsave(filename = "Assignment3/Figures/LNWage.png",plot = p,width = 7,height = 4.5,units = "in",dpi = 300)             
+p
+```
+
+This code produces a visualization of the observed and expected wage distribution (in natural, non-log form).
+
+The blue bars represent the observed frequencies of wages across the six standard deviation intervals.
+
+The red line with points shows the expected normal distribution values, enabling a direct visual comparison between empirical and theoretical distributions.
+
+As in the previous plot:
+
+geom_col() creates the histogram-style bars.
+
+geom_line() and geom_point() overlay the expected curve.
+
+theme_minimal() with white panel and plot backgrounds provides a clean layout.
+
+Axes are kept simple for a clear focus on distribution patterns.
+
+The final plot is saved as Wage.png in the Assignment3/Figures folder, with the same size (7×4.5 inches) and resolution (300 dpi) as the log wage plot.
+
+```{r}
+pw <- ggplot(data_long, aes(x = kategorie,y="Wage")) +
+  geom_col(aes(y = `Wage`), fill = "blue", alpha = 0.6) +
+  geom_line(aes(y = X4, group = 1), color = "red", linewidth = 1.2) +
+  geom_point(aes(y = X4), color = "red", size = 2) +
+  labs(y = "Observations",x=NULL) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 10, 10, 10),
+    panel.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
+    plot.background  = element_rect(fill = "white", color = NA)
+  )
+pw
+ggsave(filename = "Assignment3/Figures/Wage.png",plot = pw,width = 7,height = 4.5,units = "in",dpi = 300)
+pw
+```
+
+In this step, chi-squared tests are performed to statistically compare the observed and expected wage distributions.
+
+The first test
+
+chisq.test(data_long[,2], data_long[,4])
+
+compares the observed frequencies of log wages (LN Wage) to their expected frequencies under a normal distribution.
+
+The second test
+
+chisq.test(data_long[,6], data_long[,4])
+
+performs the same comparison for actual wages (Wage) versus their expected normal distribution.
+
+These tests evaluate whether the empirical wage data significantly deviate from a normal distribution — a low p-value (typically \< 0.05) indicates that the data are not normally distributed.
+
+The results provide a formal statistical complement to the visual inspection of the histograms and expected curves from the previous plots.
+
+```{r}
+chisq.test(data_long[,2],data_long[,4])
+chisq.test(data_long[,6],data_long[,4])
 ```
