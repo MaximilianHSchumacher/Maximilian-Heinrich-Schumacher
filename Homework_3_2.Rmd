@@ -1,0 +1,177 @@
+---
+title: "Homework 3.2"
+output: Wage Discrimination
+---
+
+```{r}
+library(haven)
+library(dplyr)
+library(writexl)
+library(ggplot2)
+library(plm)
+
+```
+
+```{r}
+fatality <- read_dta("Assignment3/Data/fatality.dta")
+```
+
+```{r}
+beer <- ggplot(data = fatality, aes(x = beertax, y = spircons)) +
+  geom_point(color = "black", alpha = 0.7, size = 2) +
+  theme_bw(base_size = 13) +
+  labs(x = "Beer Tax Rate", y = "Traffic Fatality Rate") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 1.2) +
+  theme(legend.position = "none",
+        plot.margin = margin(10, 10, 10, 10),panel.border = element_rect(colour = "black", fill = NA, linewidth = 1))
+beer
+ggsave(filename = "Assignment3/Figures/Beertaxtraffic.png",plot = beer,width  = 7,height = 4.5,units = "in",dpi = 300)
+```
+
+```{r}
+within_sd <- fatality %>%
+  group_by(state) %>%
+  summarise(
+    sd_spircons = sd(spircons, na.rm = TRUE),
+    sd_beertax = sd(beertax, na.rm = TRUE)
+  )
+overall_sd_spircons <- sd(fatality$spircons, na.rm = TRUE)
+overall_sd_beertax <- sd(fatality$beertax, na.rm = TRUE)
+
+within_sd_summary <- within_sd %>%
+  summarise(
+    avg_sd_spircons = mean(sd_spircons),
+    avg_sd_beertax = mean(sd_beertax)
+  )
+
+```
+
+```{r}
+avg_by_year <- fatality %>%
+  group_by(year) %>%
+  summarise(avg_spircons = mean(spircons, na.rm = TRUE))
+
+avg_by_state <- fatality %>%
+  group_by(state) %>%
+  summarise(avg_spircons = mean(spircons, na.rm = TRUE))
+```
+
+
+```{r}
+beer1 <- ggplot(data = fatality, aes(x = beertax, y = spircons)) +
+  geom_point(color = "black", alpha = 0.7, size = 2) +
+  theme_bw(base_size = 13) +
+  facet_wrap(~ year) +
+  labs(x = "Beer Tax Rate", y = "Traffic Fatality Rate") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 1.2) +
+  theme(legend.position = "none",
+        plot.margin = margin(10, 10, 10, 10))
+beer1
+ggsave(filename = "Assignment3/Figures/Beertaxtrafficyears.png",plot = beer1,width  = 7,height = 4.5,units = "in",dpi = 300)
+```
+
+```{r}
+beer2 <-ggplot(data = fatality, aes(x = beertax, y = spircons,color = year)) +
+  geom_point(alpha = 0.7, size = 2) +
+  theme_bw(base_size = 13) +
+  labs(x = "Beer Tax Rate", y = "Traffic Fatality Rate",color = "Year") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 1.2) +
+  theme(plot.margin = margin(10, 10, 10, 10),panel.border = element_rect(colour = "black", fill = NA, linewidth = 1))
+beer2
+
+ggsave(filename = "Assignment3/Figures/Beertaxtrafficyearsflow.png",plot = beer2,width  = 7,height = 4.5,units = "in",dpi = 300)
+```
+```{r}
+fatality_md <- fatality %>%
+  group_by(state) %>%
+  mutate(
+    mean_spircons = mean(spircons, na.rm = TRUE),
+    mean_beertax = mean(beertax, na.rm = TRUE),
+    md_spircons = spircons - mean_spircons,
+    md_beertax = beertax - mean_beertax
+  ) %>%
+  ungroup()
+# View the first few rows with mean-differenced variables
+fatality_md %>%
+  select(state, year, spircons, beertax, md_spircons, md_beertax) %>%
+  arrange(state, year) %>%
+  head(10)  # adjust number as needed
+```
+
+```{r}
+model_md <- lm(md_spircons ~ md_beertax, data = fatality_md)
+
+fatality_md$predicted_md_spircons <- predict(model_md)
+
+beer3 <- ggplot(fatality_md, aes(x = md_beertax, y = md_spircons)) +
+  geom_point(color = "black", alpha = 0.7) +
+  geom_line(aes(y = predicted_md_spircons), color = "red", linewidth = 1) +
+  theme_bw(base_size = 13) +
+  labs(
+    x = "Mean-Differenced Beer Tax",
+    y = "Mean-Differenced Fatality Rate"
+  ) +theme(legend.position = "none",
+        plot.margin = margin(10, 10, 10, 10),panel.border = element_rect(colour = "black", fill = NA, linewidth = 1))
+
+beer3
+ggsave(filename = "Assignment3/Figures/Meandifferenceregression.png",plot = beer3,width  = 7,height = 4.5,units = "in",dpi = 300)
+```
+
+```{r}
+fatality_panel <- pdata.frame(fatality, index = c("state", "year"))
+
+fe_model <- plm(spircons ~ beertax, data = fatality_panel, model = "within")
+```
+
+```{r}
+fatality_fd <- fatality %>%
+  arrange(state, year) %>%
+  group_by(state) %>%
+  mutate(
+    fd_beertax  = beertax  - dplyr::lag(beertax),
+    fd_spircons = spircons - dplyr::lag(spircons),
+    fd_mrall   = mrall   - dplyr::lag(mrall)
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+model_fd <- lm(fd_spircons ~ fd_beertax, data = fatality_fd)
+
+```
+
+```{r}
+fatality_fd %>%
+  filter(!is.na(fd_beertax), !is.na(fd_mrall)) %>%
+  ggplot(aes(x = fd_beertax, y = fd_mrall)) +
+  geom_point(color = "black", alpha = 0.7) +theme_bw(base_size = 13)+
+  labs(
+    x = "First-Differenced Beer Tax",
+    y = "First-Differenced Fatality Rate (mrall)"
+  ) +theme(legend.position = "none",
+        plot.margin = margin(10, 10, 10, 10),panel.border = element_rect(colour = "black", fill = NA, linewidth = 1))
+
+```
+
+```{r}
+fatality_fd_clean <- fatality_fd %>%
+  filter(!is.na(fd_spircons) & !is.na(fd_beertax))
+model_fd <- lm(fd_spircons ~ fd_beertax, data = fatality_fd_clean)
+fatality_fd_clean$predicted_fd_spircons <- predict(model_fd)
+```
+
+```{r}
+beer4 <- ggplot(fatality_fd_clean, aes(x = fd_beertax, y = fd_spircons)) +
+  geom_point(color = "black", alpha = 0.7) +
+  geom_line(aes(y = predicted_fd_spircons), color = "red", size = 1) +theme_bw(base_size = 13)+
+  labs(
+    x = "First-Differenced Beer Tax",
+    y = "First-Differenced Fatality Rate"
+  )  +theme(legend.position = "none",
+        plot.margin = margin(10, 10, 10, 10),panel.border = element_rect(colour = "black", fill = NA, linewidth = 1))
+
+ggsave(filename = "Assignment3/Figures/Firstdifferenceregression.png",plot = beer4,width  = 7,height = 4.5,units = "in",dpi = 300)
+```
+
+

@@ -23,13 +23,22 @@ cps85 <- subset(data,year==1985)
 
 Male <- subset(cps78,fe==0)
 Female <- subset(cps78,fe==1)
+Male85 <- subset(cps85,fe==0)
+Female85 <- subset(cps85,fe==1)
 ```
 
 ```{r}
-modelI <- lm(lnwage~fe+union+hisp+nonwh+ed+ex+exsq,data)
+modelI <- lm(lnwage~fe+union+hisp+nonwh+ed+ex+exsq,cps78)
 linearHypothesis(modelI, "fe = 0")
-stargazer(modelI, type = "text", title = "Wage Regression (CPS78)", digits = 3)
+stargazer(modelI,
+          type = "latex",title = "Wage Regressions
+          in 1978",
+          dep.var.labels = "Log(Wage)",
+          covariate.labels =c("Female","Union", "Hispanic", "Non-White","Education", "Expierience","Experience²"),
+          digits = 3,out = "Assignment3/tables/main_models.tex")
 ```
+
+
 ```{r}
 summarymale <- c(mean(Male$lnwage),mean(Male$union),mean(Male$hisp),mean(Male$nonwh),mean(Male$ed),mean(Male$ex),mean(Male$exsq))
 summaryfemale <- c(mean(Female$lnwage),mean(Female$union),mean(Female$hisp),mean(Female$nonwh),mean(Female$ed),mean(Female$ex),mean(Female$exsq))
@@ -41,13 +50,37 @@ summary$MF <- summary$Male-summary$Female
 ```
 
 ```{r}
+summary_table <- as.data.frame(summary)
+summary_table <- t(summary_table)
+
+# 1️⃣ Spaltennamen (jetzt: Male, Female, Difference)
+rownames(summary_table) <- c("Male", "Female", "Difference (F - M)")
+
+# 2️⃣ Zeilennamen setzen (die Variablen)
+colnames(summary_table) <- c("LN(Wage)", "Union", "Hispanic", "Non-White", 
+                             "Education", "Experience", "Experience²")
+
+# 3️⃣ Rundung
+summary_table <- round(summary_table, 3)
+
+# 4️⃣ Stargazer-Tabelle erzeugen
+stargazer(summary_table,
+          summary = FALSE,
+          title = "Sample Means by Gender (CPS78)",
+          label = "tab:gender_means",
+          digits = 3,
+          out = "Assignment3/tables/gender_means2.tex",
+          rownames = TRUE)
+```
+
+```{r}
 modelII <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Male)
 modelIII <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female)
 
 stargazer(modelII, modelIII,
-          type = "latex",title = "Wage Regressions by Gender",
+          type = "latex",title = "Wage Regressions by Gender in 1978",
           column.labels = c("Male", "Female"),dep.var.labels = "Log(Wage)",
-          covariate.labels =c("Union", "Nonwhite", "Hispanic","Education", "Experience²"),
+          covariate.labels =c("Union", "Hispanic", "Non-White","Education", "Expierience","Experience²"),
           digits = 3,out = "Assignment3/tables/gender_models.tex")
 
 ```
@@ -69,23 +102,347 @@ F_chow <- ((RSS_IV-(RSS_II+RSS_III))/k_IV)/((RSS_II+RSS_III)/(n_II+n_III-2*k_IV)
 p_value <- pf(F_chow, k_IV, (n_II + n_III - 2*k_IV), lower.tail = FALSE)
 ```
 
+Oxaca decomposition
+Set of coefficient Beta "Rules" of the game -> this set of Charecteristic are different 
 
 ```{r}
 gap <- summarymale[1] - summaryfemale[1]
 bm <- coef(modelII)
 bf <- coef(modelIII)
 
-Xm <- c(1, summarymale[2:7])  # Add intercept 1 at the beginning
+Xm <- c(1, summarymale[2:7])  
 Xf <- c(1, summaryfemale[2:7])
 
 summary3 <- data.frame(bm,bf,Xm,Xf)
 explained <- sum((Xm - Xf) * bm)
 unexplained <- sum(Xf * (bm - bf))
 
+explained/gap
+unexplained/gap
 gap
 explained + unexplained
 summary3
 
 
+```
+Repeat for the wage discriminination between 78 85 
+```{r}
+modelI <- lm(lnwage~fe+union+hisp+nonwh+ed+ex+exsq,cps85)
+linearHypothesis(modelI, "fe = 0")
+stargazer(modelI, type = "text", title = "Wage Regression (CPS78)", digits = 3)
+```
+```{r}
+summarymale85 <- c(mean(Male85$lnwage),mean(Male85$union),mean(Male85$hisp),mean(Male85$nonwh),mean(Male85$ed),mean(Male85$ex),mean(Male85$exsq))
+summaryfemale85 <- c(mean(Female85$lnwage),mean(Female85$union),mean(Female85$hisp),mean(Female85$nonwh),mean(Female85$ed),mean(Female85$ex),mean(Female85$exsq))
+
+summary85 <- data.frame(summarymale85,summaryfemale85)
+colnames(summary85) <- c("Male","Female")
+row.names(summary85) <- c("LN Wage","Union","Hispanic","Non-White","ED","EX","EXSQ")
+summary85$MF <- summary85$Male-summary85$Female
+```
+
+```{r}
+modelII85 <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Male85)
+modelIII85 <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female85)
+
+stargazer(modelII85, modelIII85,
+          type = "latex",title = "Wage Regressions by Gender in 1985",
+          column.labels = c("Male", "Female"),dep.var.labels = "Log(Wage)",
+          covariate.labels =c("Union", "Nonwhite", "Hispanic","Education", "Experience²"),
+          digits = 3,out = "Assignment3/tables/gender_models85.tex")
+
+```
+
+```{r}
+modelIV85 <- lm(lnwage ~union+hisp+nonwh+ed+ex+exsq,data)
+
+RSS_IV85 <- sum(resid(modelIV85)^2)
+RSS_III85 <- sum(resid(modelIII85)^2)
+RSS_II85 <- sum(resid(modelII85)^2)
+
+k_IV85 <- length(coef(modelIV85))
+n_III85 <- nobs(modelIII85)
+n_II85 <- nobs(modelII85)
+
+summary285 <- data.frame(c(RSS_IV85,RSS_III85,RSS_II85),c(k_IV85,n_III85,n_II85))
+
+F_chow85 <- ((RSS_IV85-(RSS_II85+RSS_III85))/k_IV85)/((RSS_II85+RSS_III85)/(n_II85+n_III85-2*k_IV85))
+p_value85 <- pf(F_chow85, k_IV85, (n_II85 + n_III85 - 2*k_IV85), lower.tail = FALSE)
+```
+
+Oxaca decomposition
+Set of coefficient Beta "Rules" of the game -> this set of Charecteristic are different 
+
+```{r}
+gap85 <- summarymale85[1] - summaryfemale85[1]
+bm85 <- coef(modelII85)
+bf85 <- coef(modelIII85)
+
+Xm85 <- c(1, summarymale85[2:7])  
+Xf85 <- c(1, summaryfemale85[2:7])
+
+summary385 <- data.frame(bm85,bf85,Xm85,Xf85)
+explained85 <- sum((Xm85 - Xf85) * bm85)
+unexplained85 <- sum(Xf85 * (bm85 - bf85))
+
+explained85/gap85
+unexplained85/gap85
+gap85
+explained85 + unexplained85
+summary385
+```
+Okay hier bekommen wir negative Ergebnisse das Bedeutet, das die Frauen eine bessere ausstattung (Fuer Lohn relevante merkmale) hatten und dennoch weniger verdient haben also sehen wir eine erhoete diskriminierung im vergleich zu dem was
+
+
+```{r}
+oaxaca_df <- data.frame(
+  year = c("1978", "1985"),
+  explained   = c(explained, explained85),  
+  unexplained = c(unexplained, unexplained85))
+
+oaxaca_long <- oaxaca_df %>%
+  pivot_longer(
+    cols = c(explained, unexplained),
+    names_to = "component",
+    values_to = "value"
+  )
+
+p <- ggplot(oaxaca_long, aes(x = year, y = value, fill = component)) +
+  geom_bar(stat = "identity", color = "black",position = position_dodge(width = 0.8), width = 0.7) +
+  geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
+  geom_text(aes(label = paste0(round(value, 2))),
+            position = position_dodge(width = 0.8),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_manual(
+    values = c("explained" = "gray", "unexplained" = "red"),
+    labels = c("Explained (endowments)", "Unexplained (discrimination)"),
+    name = ""
+  ) +
+  labs(
+    y = "Log points wage gap"
+  ) +
+  theme_minimal(base_size = 13) +
+ theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+
+print(p)
+ggsave(filename = "Assignment3/Figures/Oaxaca-Blinder.png",plot = p,width = 7,height = 4.5,units = "in",dpi = 300)     
+```
+```{r}
+oaxaca_share <- oaxaca_df %>%
+  mutate(
+    total = explained + unexplained,
+    explained = explained / total,
+    unexplained = unexplained / total)
+
+oaxaca_df$type <- "Total (log points)"
+oaxaca_share$type <- "Share (%)"
+
+oaxaca_long <- bind_rows(oaxaca_df, oaxaca_share) %>%
+  pivot_longer(cols = c(explained, unexplained),
+               names_to = "component",
+               values_to = "value")
+
+# --- Convert shares to % and keep only the share part ---
+oaxaca_long2 <- oaxaca_long %>%
+  mutate(value = ifelse(type == "Share (%)", value * 100, value)) %>%
+  filter(type == "Share (%)")   # 👈 only keep the share panel
+
+```
+Plot sahres of how much of the wage gap can be explained cannot be explained 
+```{r}
+pp <- ggplot(oaxaca_long2, aes(x = year, y = value, fill = component)) +
+  geom_bar(stat = "identity", color = "black",position = position_dodge(width = 0.8), width = 0.7) +
+  geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
+  geom_text(aes(label = paste0(round(value, 2),"%")),
+            position = position_dodge(width = 0.8),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_manual(
+    values = c("explained" = "gray", "unexplained" = "red"),
+    labels = c("Explained (endowments)", "Unexplained (discrimination)"),
+    name = ""
+  ) +
+  labs(
+    y = "Share of total wage gap", x=NULL
+  ) +
+  theme_minimal(base_size = 13) +
+ theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+
+ggsave(filename = "Assignment3/Figures/Oaxaca-Blindershare.png",plot = pp,width = 7,height = 4.5,units = "in",dpi = 300)  
+print(pp)
+```
+```{r}
+# Example for 1978
+Female_married <- subset(Female, marr == 1)
+Female_single  <- subset(Female, marr == 0)
+
+summaryfemale_married <- c(mean(Female_married$lnwage),mean(Female_married$union),mean(Female_married$hisp),mean(Female_married$nonwh),mean(Female_married$ed),mean(Female_married$ex),mean(Female_married$exsq))
+summaryfemale_single <- c(mean(Female_single$lnwage),mean(Female_single$union),mean(Female_single$hisp),mean(Female_single$nonwh),mean(Female_single$ed),mean(Female_single$ex),mean(Female_single$exsq))
+
+modelIIIFmarr <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female_married)
+modelIIIFsingle <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female_single)
+```
+
+
+```{r}
+gapmsingle <- summarymale[1] - summaryfemale_single[1]
+bf_single <- coef(modelIIIFsingle)
+Xf_single <- c(1, summaryfemale_single[2:7])
+
+summary3msingle <- data.frame(bm,bf_single,Xm,Xf_single)
+explainedmsingle78 <- sum((Xm - Xf_single) * bm)
+unexplainedmsingle78 <- sum(Xf_single * (bm - bf_single))
+
+explainedmsingle78/gapmsingle
+unexplainedmsingle78/gapmsingle
+gapmsingle
+explainedmsingle78 + unexplainedmsingle78
+summary3msingle
+
+gapmmarried <- summarymale[1] - summaryfemale_married[1]
+bf_married <- coef(modelIIIFmarr)
+Xf_married <- c(1, summaryfemale_married[2:7])
+
+summary3mmarried <- data.frame(bm,bf_married,Xm,Xf_married)
+explainedmmarried78 <- sum((Xm - Xf_married) * bm)
+unexplainedmmarried78 <- sum(Xf_married * (bm - bf_married))
+
+explainedmmarried78/gapmmarried
+unexplainedmmarried78/gapmmarried
+gapmmarried
+explainedmmarried78 + unexplainedmmarried78
+summary3mmarried
+```
+```{r}
+oaxaca_dfmarr78 <- data.frame(
+  year = c("Single", "Married"),
+  explained78   = c(explainedmsingle78, explainedmmarried78),  
+  unexplained78 = c(unexplainedmsingle78, unexplainedmmarried78))
+
+oaxaca_longmarr <- oaxaca_dfmarr %>%
+  pivot_longer(
+    cols = c(explained, unexplained),
+    names_to = "component",
+    values_to = "value"
+  )
+
+pmarr78 <- ggplot(oaxaca_longmarr, aes(x = year, y = value, fill = component)) +
+  geom_bar(stat = "identity", color = "black",position = position_dodge(width = 0.8), width = 0.7) +
+  geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
+  geom_text(aes(label = paste0(round(value, 2))),
+            position = position_dodge(width = 0.8),
+            vjust = -0.3,
+            size = 3.5) +
+  scale_fill_manual(
+    values = c("explained" = "gray", "unexplained" = "red"),
+    labels = c("Explained (endowments)", "Unexplained (discrimination)"),
+    name = ""
+  ) +
+  scale_y_continuous(limits = c(0, 0.5))+
+  labs(
+    y = "Log points wage gap",
+    x = "1978"
+  ) +
+  theme_minimal(base_size = 13) +
+ theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+pmarr78
+```
+
+```{r}
+Female_married85 <- subset(Female85, marr == 1)
+Female_single85  <- subset(Female85, marr == 0)
+
+summaryfemale_married85 <- c(mean(Female_married85$lnwage),mean(Female_married85$union),mean(Female_married85$hisp),mean(Female_married85$nonwh),mean(Female_married85$ed),mean(Female_married85$ex),mean(Female_married85$exsq))
+summaryfemale_single85 <- c(mean(Female_single85$lnwage),mean(Female_single85$union),mean(Female_single85$hisp),mean(Female_single85$nonwh),mean(Female_single85$ed),mean(Female_single85$ex),mean(Female_single85$exsq))
+
+modelIIIFmarr85 <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female_married85)
+modelIIIFsingle85 <- lm(lnwage~union+hisp+nonwh+ed+ex+exsq,Female_single85)
+```
+
+```{r}
+gapmsingle85 <- summarymale85[1] - summaryfemale_single85[1]
+bf_single85 <- coef(modelIIIFsingle85)
+Xf_single85 <- c(1, summaryfemale_single85[2:7])
+
+summary3msingle85 <- data.frame(bm85,bf_single85,Xm85,Xf_single85)
+explainedmsingle85 <- sum((Xm85 - Xf_single85) * bm85)
+unexplainedmsingle85 <- sum(Xf_single85 * (bm85 - bf_single85))
+
+explainedmsingle85/gapmsingle85
+unexplainedmsingle85/gapmsingle85
+gapmsingle85
+explainedmsingle85 + unexplainedmsingle85
+summary3msingle85
+
+gapmmarried85 <- summarymale85[1] - summaryfemale_married85[1]
+bf_married85 <- coef(modelIIIFmarr85)
+Xf_married85 <- c(1, summaryfemale_married85[2:7])
+
+summary3mmarried85 <- data.frame(bm85,bf_married85,Xm85,Xf_married85)
+explainedmmarried85 <- sum((Xm85 - Xf_married85) * bm85)
+unexplainedmmarried85 <- sum(Xf_married85 * (bm85 - bf_married85))
+
+explainedmmarried85/gapmmarried85
+unexplainedmmarried85/gapmmarried85
+gapmmarried85
+explainedmmarried85 + unexplainedmmarried85
+summary3mmarried85
+```
+
+```{r}
+oaxaca_dfmarr85 <- data.frame(
+  year = c("Single", "Married"),
+  explained   = c(explainedmsingle85, explainedmmarried85),  
+  unexplained = c(unexplainedmsingle85, unexplainedmmarried85))
+
+oaxaca_longmarr85 <- oaxaca_dfmarr85 %>%
+  pivot_longer(
+    cols = c(explained, unexplained),
+    names_to = "component",
+    values_to = "value"
+  )
+
+pmarr85 <- ggplot(oaxaca_longmarr85, aes(x = year, y = value, fill = component)) +
+  geom_bar(stat = "identity", color = "black",position = position_dodge(width = 0.8), width = 0.7) +
+  geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
+  geom_text(aes(label = paste0(round(value, 2))),
+            position = position_dodge(width = 0.8),
+            vjust = -0.3,
+            size = 3.5) +scale_y_continuous(limits = c(-0.1, 0.5w))+
+  scale_fill_manual(
+    values = c("explained" = "gray", "unexplained" = "red"),
+    labels = c("Explained (endowments)", "Unexplained (discrimination)"),
+    name = ""
+  ) +
+  labs(
+    y = "Log points wage gap",
+    x = "1985"
+  ) +
+  theme_minimal(base_size = 13) +
+ theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.margin = margin(10, 10, 10, 10)
+  )
+pmarr85
+```
+
+
+```{r}
+ggsave(filename = "Assignment3/Figures/marriedsingle78.png",plot = pmarr78 ,width = 7,height = 4.5,units = "in",dpi = 300)
+ggsave(filename = "Assignment3/Figures/marriedsingle85.png",plot = pmarr85,width  = 7,height = 4.5,units = "in",dpi = 300)
 ```
 

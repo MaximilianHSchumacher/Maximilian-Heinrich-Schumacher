@@ -1,5 +1,5 @@
 ---
-title: "Assignment 3"
+title: "Homework 3 Excercise 1"
 output: html_notebook
 ---
 
@@ -95,6 +95,7 @@ plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
   theme_bw(base_size = 13) +
   labs(x = "Wage",y = "Ln(Wage)") +
   theme(legend.position = "none",plot.margin = margin(10, 10, 10, 10))
+plot_lnwage_wage78
 ```
 
 In this step, the generated plot and summary statistics are exported for inclusion in the final report.
@@ -380,22 +381,44 @@ Each dummy variable equals 1 if the individual’s wage falls within the specifi
 This classification allows for later visualization or tabulation of wage distributions across standard deviation bands, helping to illustrate wage dispersion in both log and real terms.
 
 ```{r}
-breaks <- c(0,(mean[1] - 2*sd[1]),(mean[1]-sd[1]),mean[1],(mean[1]+sd[1]),(mean[1]+2*sd[1]),100)
-breaksw <- c(-5,(meanw[1] - 2*sdw[1]),(meanw[1]-sdw[1]),meanw[1],(meanw[1]+sdw[1]),(meanw[1]+2*sdw[1]),100)
 
-cps78$one <- ifelse(cps78$lnwage < breaks[1],1, 0)
-cps78$two <- ifelse(cps78$lnwage >= breaks[1] & cps78$lnwage < breaks[2],1, 0)
-cps78$three <- ifelse(cps78$lnwage >= breaks[2] & cps78$lnwage < breaks[3],1, 0)
-cps78$four <- ifelse(cps78$lnwage >= breaks[3]& cps78$lnwage <= breaks[4],1, 0)
-cps78$five <- ifelse(cps78$lnwage > breaks[4] & cps78$lnwage <= breaks[5],1, 0)
-cps78$six <- ifelse(cps78$lnwage > breaks[5],1, 0)
+breaks <- c(
+  -Inf,
+  (mean[1] - 2*sd[1]),
+  (mean[1] - sd[1]),
+  mean[1],
+  (mean[1] + sd[1]),
+  (mean[1] + 2*sd[1]),
+  Inf
+)
 
-cps78$onew <- ifelse(cps78$wage < breaksw[1],1, 0)
-cps78$twow <- ifelse(cps78$wage >= breaksw[1] & cps78$wage < breaksw[2],1, 0)
-cps78$threew <- ifelse(cps78$wage >= breaksw[2] & cps78$wage < breaksw[3],1, 0)
-cps78$fourw <- ifelse(cps78$wage >= breaksw[3]& cps78$wage <= breaksw[4],1, 0)
-cps78$fivew <- ifelse(cps78$wage > breaksw[4] & cps78$wage <= breaksw[5],1, 0)
-cps78$sixw <- ifelse(cps78$wage > breaksw[5],1, 0)
+breaksw <- c(
+  0,
+  (meanw[1] - 2*sdw[1]),
+  (meanw[1] - sdw[1]),
+  meanw[1],
+  (meanw[1] + sdw[1]),
+  (meanw[1] + 2*sdw[1]),
+  Inf
+)
+
+# --- Kategorisierung für lnwage ---
+
+cps78$one   <- ifelse(cps78$lnwage <  breaks[2], 1, 0)
+cps78$two   <- ifelse(cps78$lnwage >= breaks[2] & cps78$lnwage <  breaks[3], 1, 0)
+cps78$three <- ifelse(cps78$lnwage >= breaks[3] & cps78$lnwage <  breaks[4], 1, 0)
+cps78$four  <- ifelse(cps78$lnwage >= breaks[4] & cps78$lnwage <  breaks[5], 1, 0)
+cps78$five  <- ifelse(cps78$lnwage >= breaks[5] & cps78$lnwage <  breaks[6], 1, 0)
+cps78$six   <- ifelse(cps78$lnwage >= breaks[6], 1, 0)
+
+# --- Kategorisierung für wage ---
+
+cps78$onew   <- ifelse(cps78$wage <  breaksw[2], 1, 0)
+cps78$twow   <- ifelse(cps78$wage >= breaksw[2] & cps78$wage <  breaksw[3], 1, 0)
+cps78$threew <- ifelse(cps78$wage >= breaksw[3] & cps78$wage <  breaksw[4], 1, 0)
+cps78$fourw  <- ifelse(cps78$wage >= breaksw[4] & cps78$wage <  breaksw[5], 1, 0)
+cps78$fivew  <- ifelse(cps78$wage >= breaksw[5] & cps78$wage <  breaksw[6], 1, 0)
+cps78$sixw   <- ifelse(cps78$wage >= breaksw[6], 1, 0)
 ```
 
 This section summarizes the wage distribution across the previously defined standard deviation intervals.
@@ -564,19 +587,19 @@ The minimalist theme (theme_minimal()) combined with white panel and plot backgr
 Finally, the plot is exported as a high-resolution PNG file (LNWage.png) in the Assignment3/Figures folder using ggsave(), sized 7×4.5 inches at 300 dpi.
 
 ```{r}
-p <- ggplot(data_long, aes(x = kategorie,y="LN.Wage")) +
-  geom_col(aes(y = `LN.Wage`), fill = "blue", alpha = 0.6) +
-  geom_line(aes(y = X4, group = 1), color = "red", linewidth = 1.2) +
-  geom_point(aes(y = X4), color = "red", size = 2) +
+l <- l <- ggplot(data_long, aes(x = kategorie, y = LN.Wage)) +  # <-- ohne Anführungszeichen!
+  geom_col(fill = "red", alpha = 0.6, color = "black", width = 0.7) +
+  geom_line(aes(y = X4, group = 1), color = "blue", linewidth = 1.2) +
+  geom_point(aes(y = X4), color = "blue", size = 2) +
   labs(y = "Observations" ,x=NULL) +
-  theme_minimal() +
-  theme(
-    plot.margin = margin(10, 10, 10, 10),
-    panel.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
-    plot.background  = element_rect(fill = "white", color = NA)
+  theme_minimal(base_size = 13) +
+ theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.margin = margin(10, 10, 10, 10)
   )
-ggsave(filename = "Assignment3/Figures/LNWage.png",plot = p,width = 7,height = 4.5,units = "in",dpi = 300)             
-p
+ggsave(filename = "Assignment3/Figures/LNWage.png",plot = l,width = 7,height = 4.5,units = "in",dpi = 300)             
+l
 ```
 
 This code produces a visualization of the observed and expected wage distribution (in natural, non-log form).
@@ -598,18 +621,18 @@ Axes are kept simple for a clear focus on distribution patterns.
 The final plot is saved as Wage.png in the Assignment3/Figures folder, with the same size (7×4.5 inches) and resolution (300 dpi) as the log wage plot.
 
 ```{r}
-pw <- ggplot(data_long, aes(x = kategorie,y="Wage")) +
-  geom_col(aes(y = `Wage`), fill = "blue", alpha = 0.6) +
-  geom_line(aes(y = X4, group = 1), color = "red", linewidth = 1.2) +
-  geom_point(aes(y = X4), color = "red", size = 2) +
-  labs(y = "Observations",x=NULL) +
-  theme_minimal() +
-  theme(
-    plot.margin = margin(10, 10, 10, 10),
-    panel.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
-    plot.background  = element_rect(fill = "white", color = NA)
+pw <- ggplot(data_long, aes(x = kategorie, y = Wage)) +  # <-- ohne Anführungszeichen!
+  geom_col(fill = "red", alpha = 0.6, color = "black", width = 0.7) +
+  geom_line(aes(y = X4, group = 1), color = "blue", linewidth = 1.2) +
+  geom_point(aes(y = X4), color = "blue", size = 2) +
+  labs(y = "Observations" ,x=NULL) +
+  theme_minimal(base_size = 13) +
+ theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.margin = margin(10, 10, 10, 10)
   )
-pw
+
 ggsave(filename = "Assignment3/Figures/Wage.png",plot = pw,width = 7,height = 4.5,units = "in",dpi = 300)
 pw
 ```
@@ -636,3 +659,14 @@ The results provide a formal statistical complement to the visual inspection of 
 chisq.test(data_long[,2],data_long[,4])
 chisq.test(data_long[,6],data_long[,4])
 ```
+```{r}
+# Chi²-Test für LN(Wage)
+chisq_ln <- chisq.test(x = data_long$LN.Wage, p = data_long$X4 / sum(data_long$X4))
+chisq_ln
+
+# Chi²-Test für Wage
+chisq_w <- chisq.test(x = data_long$Wage, data_long$X4  / sum(data_long$X4))
+chisq_w
+
+```
+

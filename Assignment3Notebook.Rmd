@@ -1,0 +1,167 @@
+---
+title: "Assignment 3"
+output: html_notebook
+---
+
+#Assignment 3 \# Exercise 1 \#
+
+```{r}
+library(haven)
+library(ggplot2)
+library(stargazer)
+library(xtable)
+
+
+```
+
+#Daten aufteilung nach Jahren
+
+```{r}
+data <- read_dta("Assignment3/Data/chap5-cps.dta")
+data$wage <- exp(data$lnwage)
+cps78 <- subset(data,year==1978)
+cps85 <- subset(data,year==1985)
+```
+
+#Berechnung unterschiedlicher deskriptiver statistiken
+
+```{r}
+mean <- c(mean(cps78$lnwage, na.rm = TRUE),mean(cps85$lnwage, na.rm = TRUE))
+sd <- c(sd(cps78$lnwage, na.rm = TRUE),sd(cps85$lnwage, na.rm = TRUE))
+exp1 <- c(mean(exp(cps78$lnwage), na.rm = TRUE),mean(exp(cps85$lnwage), na.rm = TRUE))
+exp2 <- c(exp(mean[1]),exp(mean[2]))
+meansd <- data.frame (Mean_Lnwage =mean, SD_Lnwage = sd,Arithmetic_mean=exp1,Geometric_mean=exp2)
+rownames(meansd) <- c("CPS78","CPS85")
+```
+
+#Abbildung Scatterplot Wage/Lnwage
+
+```{r}
+plot_lnwage_wage78 <- ggplot(cps78, aes(x = wage, y = lnwage)) +
+  geom_point(color = "black", alpha = 0.3, size = 2) +
+  geom_hline(yintercept = mean[1], linetype = "dashed", color ="red") +
+  annotate(geom = "text",x = 20,y = mean[1]+0.1,label = paste("Mean Ln(Wage)=",round(mean[1],2)),color = "red")+
+  geom_vline(xintercept = exp1[1], linetype = "dashed", color = "blue") +
+  annotate(geom = "text",x = exp1[1]+0.5,y = 2.8,label = paste("Geometric mean=",round(exp1[1],2)),color = "blue",angle = 90)+
+  coord_cartesian(ylim = c(0, 3.5),xlim=c(0,30)) +
+  theme_bw(base_size = 13) +
+  labs(x = "Wage",y = "Ln(Wage)") +
+  theme(legend.position = "none",plot.margin = margin(10, 10, 10, 10))
+plot_lnwage_wage78
+```
+
+#Tabelel fuer die summary statistics
+
+```{r}
+ggsave(filename = "Assignment3/Figures/plot_lnwage_wage78.png",plot = plot_lnwage_wage78,width = 7,height = 4.5,units = "in",dpi = 300)
+
+stargazer(data.frame(cps78[,c("lnwage","wage")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78.tex")
+```
+
+Jetzt Berechnung von deskriptiver statistiken für Jahre schule (ED) und Jahre Erfahrung (EX)
+
+```{r}
+meanedex <- c(mean(cps78$ed, na.rm = TRUE),mean(cps85$ed, na.rm = TRUE),mean(cps78$ex, na.rm = TRUE),mean(cps85$ex, na.rm = TRUE))
+sdedex <- c(sd(cps78$ed, na.rm = TRUE),sd(cps85$ed, na.rm = TRUE),sd(cps78$ex, na.rm = TRUE),sd(cps85$ex, na.rm = TRUE))
+exp1edex <- c(mean(exp(cps78$ed), na.rm = TRUE),mean(exp(cps85$ed), na.rm = TRUE),mean(exp(cps78$ex), na.rm = TRUE),mean(exp(cps85$ex), na.rm = TRUE))
+exp2edex <- c(exp(meanedex[1]),exp(meanedex[2]),exp(meanedex[3]),exp(meanedex[4]))
+
+meanexed <- data.frame (Mean_EDEX=meanedex, SD_EDEX =sdedex,Arithmetic_mean_EDEX=exp1edex,Geometric_mean_EDEX=exp2edex)
+rownames(meanexed) <- c("CPS78ED","CPS85ED","CPS78EX","CPS85EX")
+```
+
+Stargazer speichert die Ergebnisse in Latex format fertig zum schreiben.
+
+```{r}
+stargazer(data.frame(cps78[,c("ed","ex")]),type = "latex",title = "Summary Statistics cps78",digits = 2,out = "Assignment3/Tables/summary_cps78edex.tex")  
+```
+
+1b) Insgesamt gibt es 550 beobachtungen innerhalb des 78iger Datasets
+
+Dummy Variable NONWH (Nicht Weiss und Nicht Hispanic)
+
+Dummy Variable HIPS (Nicht Weiss und Hispanic)
+
+Dummy Variable FE (Frauen)
+
+```{r}
+Dummy <- data.frame(cps78$nonwh,cps78$hisp,cps78$fe)
+stargazer(Dummy,type = "latex",title = "Dummy variables cps78",digits = 2,out = "Assignment3/Tables/summary_dummy.tex")  
+```
+
+Jetzt Aufgabe 1
+
+```{r}
+
+```
+
+Den Datensatz CPS78 nach Geschlecht unterteilen und dann die standard deviation (SD) und mittelwert (MEAN) von (ED) und Jetzt den Datensatz nach "Rasse Dummy Variablen aufteilen, also Black, Hisp und Weisi aufteilen und
+
+-\> MEAN, SD, Geometric Mean von ED
+
+Zuerst habe ich die Datensätze aufgeteilt sodass ich einfach die Berechnung pro subset machen kann
+
+```{r}
+Male <- subset(cps78,fe==0)
+Female <- subset(cps78,fe==1)
+White <- subset(cps78,nonwh==0)
+Hispanic <- subset(cps78,hisp==1)
+Black <- subset(cps78,nonwh==1)
+MaleWhite <- subset(White,fe==0)
+MaleHispanic <- subset(Hispanic,fe==0)
+MaleBlack <- subset(Black,fe==0)
+FemaleWhite <- subset(White,fe==1)
+FemaleHispanic <- subset(Hispanic,fe==1)
+FemaleBlack <- subset(Black,fe==1)
+
+
+mean2 <- c(mean(Male$ed),mean(Female$ed),mean(White$ed),mean(Hispanic$ed),mean(Black$ed),mean(MaleWhite$ed),mean(MaleHispanic$ed),mean(MaleBlack$ed),mean(FemaleWhite$ed),mean(FemaleHispanic$ed),mean(FemaleBlack$ed))
+
+sd2 <- c(sd(Male$ed),sd(Female$ed),sd(White$ed),sd(Hispanic$ed),sd(Black$ed),sd(MaleWhite$ed),sd(MaleHispanic$ed),sd(MaleBlack$ed),sd(FemaleWhite$ed),sd(FemaleHispanic$ed),sd(FemaleBlack$ed))
+
+meanwage2 <- c(mean(Male$lnwage),mean(Female$lnwage),mean(White$lnwage),mean(Hispanic$lnwage),mean(Black$lnwage),mean(MaleWhite$lnwage),mean(MaleHispanic$lnwage),mean(MaleBlack$lnwage),mean(FemaleWhite$lnwage),mean(FemaleHispanic$lnwage),mean(FemaleBlack$lnwage))
+
+geom2 <- exp(meanwage2)
+obs2 <- c(nrow(Male),nrow(Female),nrow(White),nrow(Hispanic),nrow(Black),nrow(MaleWhite),nrow(MaleHispanic),nrow(MaleBlack),nrow(FemaleWhite),nrow(FemaleHispanic),nrow(FemaleBlack))
+percent2 <- obs2/nrow(cps78)
+annual2 <- geom2*2000
+genderrace <- data.frame(mean2, sd2,geom2,annual2,obs2,percent2)
+groups <- c("Male","Female","White","Hispanic","Black","White Male","Hispanic Male","Black Male","White Female","Hispanic Female","Black Female")
+
+genderrace <- data.frame(groups,obs2,percent2,mean2, sd2,geom2,annual2)
+colnames(genderrace) <- c(" ","Obs","% Sample","Mean Ed", "SD ED","Geometric mean Wage","Annual Average Wage")
+
+genderrace
+
+```
+
+```{r}
+empty_row <- data.frame(matrix(NA, ncol = ncol(genderrace), nrow = 1))
+colnames(empty_row) <-colnames(genderrace)
+
+genderrace_with_space <- rbind(empty_row,
+  genderrace[1:2, ],
+  empty_row,
+  genderrace[3:5, ],
+  empty_row,
+  genderrace[6:11, ]
+)
+genderrace_with_space[1,1]<- "Gender"
+genderrace_with_space[4,1]<- "Race"
+genderrace_with_space[8,1]<- "Gender and Race"
+rownames(genderrace_with_space)=NULL
+
+stargazer(genderrace_with_space,rownames = FALSE,
+          summary = FALSE,
+          type = "latex",
+          digits = 2,
+          out = "genderrace_table.tex")
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
